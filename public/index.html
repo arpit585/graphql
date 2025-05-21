@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Patient Lookup</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 30px;
+      background-color: #f4f4f4;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+      margin: 5px;
+    }
+    #result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fff;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+
+  <h2>Find Patient by Name</h2>
+
+  <input type="text" id="patientName" placeholder="Enter patient name" />
+  <button onclick="fetchPatient()">Search</button>
+
+  <div id="result"></div>
+
+  <script>
+    async function fetchPatient() {
+      const name = document.getElementById('patientName').value.trim();
+      const resultDiv = document.getElementById('result');
+
+      if (!name) {
+        resultDiv.innerHTML = "Please enter a patient name.";
+        return;
+      }
+
+      const query = `
+        query {
+          patientByName(name: "${name}") {
+            id
+            name
+            age
+            carePlans {
+              title
+              goals
+            }
+          }
+        }
+      `;
+
+      try {
+        const response = await fetch("http://localhost:4000/graphql", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query }),
+        });
+
+        const { data } = await response.json();
+
+        if (data.patientByName) {
+          const patient = data.patientByName;
+          resultDiv.innerHTML = `
+            <strong>Name:</strong> ${patient.name}<br>
+            <strong>Age:</strong> ${patient.age}<br>
+            <strong>Care Plans:</strong>
+            <ul>
+              ${patient.carePlans.map(cp => `<li>${cp.title} - Goals: ${cp.goals.join(', ')}</li>`).join('')}
+            </ul>
+          `;
+        } else {
+          resultDiv.innerHTML = "Patient not found.";
+        }
+
+      } catch (error) {
+        resultDiv.innerHTML = "Error fetching data.";
+        console.error(error);
+      }
+    }
+  </script>
+
+</body>
+</html>
